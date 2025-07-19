@@ -1,0 +1,258 @@
+    <!DOCTYPE html><html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Lost & Found</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { display: flex; margin: 0; }
+        .sidebar {
+        width: 250px;
+        background-color: #343a40;
+        color: white;
+        padding: 20px;
+        height: 100vh;
+        position: fixed;
+        }
+        .sidebar a {
+        display: block;
+        color: white;
+        text-decoration: none;
+        margin: 10px 0;
+        }
+        .main-content {
+        margin-left: 250px;
+        padding: 20px;
+        width: 100%;
+        }
+        .badge-confirmed { background-color: green; }
+        .badge-dismissed { background-color: red; }
+    </style>
+    </head>
+    <body>
+    <div class="sidebar">
+        <h2>Admin Panel</h2>
+        <a href="#">Dashboard</a>
+        <a href="#">Posts Management</a>
+        <a href="#">Matching System</a>
+        <a href="#">Support</a>
+        <a href="#">Logout</a>
+    </div> 
+
+
+
+            <div class="main-content">
+                <h1 class="mb-4">Welcome, Admin</h1>
+                <div class="row">
+                <div class="col-md-3">
+                    <div class="card text-white bg-primary">
+                    <div class="card-body">
+                        <h5>Total Posts</h5>
+                        <p class="card-text">102</p>
+                    </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-warning">
+                    <div class="card-body">
+                        <h5>Pending Approvals</h5>
+                        <p class="card-text">7</p>
+                    </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-success">
+                    <div class="card-body">
+                        <h5>Matched Items</h5>
+                        <p class="card-text">15</p>
+                    </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-dark">
+                    <div class="card-body">
+                        <h5>Support Tickets</h5>
+                        <p class="card-text">3</p>
+                    </div>
+                    </div>
+                </div>
+                </div>
+                
+                
+                
+                
+                
+    <div class="section">
+
+    <h3>Posts Management</h3>
+    <table class="table table-bordered">
+        <thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="postsTable"></tbody>
+    </table>
+    </div>
+    
+
+    <div class="section">
+    <h3>Matching System</h3>
+    <table class="table table-striped">
+        <thead><tr><th>Lost</th><th>Found</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="matchesTable"></tbody>
+    </table>
+    </div>
+
+    <div class="section">
+    <h3>Support Tickets</h3>
+    <table class="table">
+        <thead><tr><th>ID</th><th>User</th><th>Message</th><th>Status</th><th>Reply</th></tr></thead>
+        <tbody id="ticketsTable"></tbody>
+    </table>
+    </div>
+
+    </div>  <!-- Modals -->  <div class="modal fade" id="rejectModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5>Reject Post</h5></div>
+        <div class="modal-body"><textarea class="form-control" id="rejectReason"></textarea></div>
+        <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-danger" onclick="submitReject()">Submit</button>
+        </div></div></div></div>  <div class="modal fade" id="dismissModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5>Dismiss Match</h5></div>
+        <div class="modal-body"><textarea class="form-control" id="dismissReason"></textarea></div>
+        <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-danger" onclick="submitDismiss()">Submit</button>
+        </div></div></div></div>  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>  <script>
+        let selectedPostId = null;
+        let selectedMatchId = null;
+
+        const sampleData = {
+        posts: [{ id: 1, title: "Lost Wallet", status: "pending", rejectReason: "" }],
+        matches: [{ id: 1, lost: "Black Backpack", found: "Black Backpack w/ Red Stripe", status: "pending", dismissReason: "" }],
+        tickets: [{ id: 1, user: "user123", message: "I lost my ID card", status: "open", reply: "" }]
+        };
+
+        function loadData() {
+        if (!localStorage.getItem("adminData")) {
+            localStorage.setItem("adminData", JSON.stringify(sampleData));
+        }
+        return JSON.parse(localStorage.getItem("adminData"));
+        }
+
+        function saveData(data) {
+        localStorage.setItem("adminData", JSON.stringify(data));
+        }
+
+        function renderTables() {
+        const data = loadData();
+        const postsTable = document.getElementById("postsTable");
+        postsTable.innerHTML = data.posts.map(post => `
+            <tr>
+            <td>#${post.id}</td>
+            <td>${post.title}</td>
+            <td><span class="badge ${post.status === 'approved' ? 'bg-success' : post.status === 'rejected' ? 'bg-danger' : 'bg-warning'}" id="post-status-${post.id}">${post.status}</span></td>
+            <td>
+                <button class="btn btn-success btn-sm" onclick="approvePost(${post.id})">Approve</button>
+                <button class="btn btn-danger btn-sm" onclick="showRejectModal(${post.id})">Reject</button>
+            </td>
+            </tr>`).join("");
+
+        const matchesTable = document.getElementById("matchesTable");
+        matchesTable.innerHTML = data.matches.map(match => `
+            <tr>
+            <td>${match.lost}</td>
+            <td>${match.found}</td>
+            <td><span class="badge ${match.status === 'confirmed' ? 'badge-confirmed' : match.status === 'dismissed' ? 'badge-dismissed' : 'bg-warning'}" id="match-status-${match.id}">${match.status}</span></td>
+            <td>
+                <button class="btn btn-success btn-sm" onclick="confirmMatch(${match.id})">Confirm</button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="showDismissModal(${match.id})">Dismiss</button>
+            </td>
+            </tr>`).join("");
+
+        const ticketsTable = document.getElementById("ticketsTable");
+        ticketsTable.innerHTML = data.tickets.map(ticket => `
+            <tr>
+            <td>#T${ticket.id}</td>
+            <td>${ticket.user}</td>
+            <td>${ticket.message}</td>
+            <td><span class="badge ${ticket.status === 'replied' ? 'bg-success' : 'bg-info'}" id="ticket-status-${ticket.id}">${ticket.status}</span></td>
+            <td>
+                <button class="btn btn-primary btn-sm" onclick="showReplyBox(${ticket.id})">Reply</button>
+                <div id="reply-box-${ticket.id}" style="display:none; margin-top:10px;">
+                <textarea class="form-control mb-2" id="reply-text-${ticket.id}" rows="2">${ticket.reply || ''}</textarea><button class="btn btn-sm btn-success" onclick="sendReply(${ticket.id})">Send</button>
+            </div>
+        </td>
+        </tr>`).join("");
+    }
+
+    function approvePost(id) {
+    const data = loadData();
+    const post = data.posts.find(p => p.id === id);
+    post.status = "approved";
+    saveData(data);
+    renderTables();
+    console.log("Approved");
+    }
+
+    function showRejectModal(id) {
+    selectedPostId = id;
+    document.getElementById("rejectReason").value = "";
+    new bootstrap.Modal(document.getElementById("rejectModal")).show();
+    }
+
+    function submitReject() {
+    const reason = document.getElementById("rejectReason").value;
+    const data = loadData();
+    const post = data.posts.find(p => p.id === selectedPostId);
+    post.status = "rejected";
+    post.rejectReason = reason;
+    saveData(data);
+    bootstrap.Modal.getInstance(document.getElementById("rejectModal")).hide();
+    renderTables();
+    console.log("Rejected", reason);
+    }
+
+    function confirmMatch(id) {
+    const data = loadData();
+    const match = data.matches.find(m => m.id === id);
+    match.status = "confirmed";
+    saveData(data);
+    renderTables();
+    console.log("Confirmed");
+    }
+
+    function showDismissModal(id) {
+    selectedMatchId = id;
+    document.getElementById("dismissReason").value = "";
+    new bootstrap.Modal(document.getElementById("dismissModal")).show();
+    console.log("Dismissed");
+    }
+
+    function submitDismiss() {
+    const reason = document.getElementById("dismissReason").value;
+    const data = loadData();
+    const match = data.matches.find(m => m.id === selectedMatchId);
+    match.status = "dismissed";
+    match.dismissReason = reason;
+    saveData(data);
+    bootstrap.Modal.getInstance(document.getElementById("dismissModal")).hide();
+    renderTables();
+    }
+
+    function showReplyBox(id) {
+    document.getElementById('reply-box-${id}');
+    }
+
+    function sendReply(id) {
+    const replyText = document.getElementById('reply-text-${id}').value;
+    const data = loadData();
+    const ticket = data.tickets.find(t => t.id === id);
+    ticket.status = "replied";
+    ticket.reply = replyText;
+    saveData(data);
+    renderTables();
+    }
+
+    window.onload = renderTables;
+
+    </script>
+    </body>
+    </html>
